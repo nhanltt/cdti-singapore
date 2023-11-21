@@ -1,2 +1,1 @@
-1. Compose up 
-2. "docker exec -it broker sh"
+1. Compose up to start all services (zookeeper, broker, mosquitto, telegraf)

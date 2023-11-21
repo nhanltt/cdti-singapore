@@ -1,5 +1,5 @@
 ---
-version: '2'
+version: '3'
 
 services:
   zookeeper1:
@@ -14,7 +14,7 @@ services:
       ZOOKEEPER_CLIENT_PORT: 2191
       ZOOKEEPER_TICK_TIME: 2000
       ZOOKEEPER_JMX_HOSTNAME: zookeeper1
-      ZOOKEEPER_SERVERS: 0.0.0.0:2888:3888;zookeeper2:2888:3888;zookeeper3:2888:3888
+      ZOOKEEPER_SERVERS: 0.0.0.0:2888:3888
       ZOOKEEPER_LOG4J_ROOT_LOGLEVEL: ERROR
       ZOOKEEPER_LOG4J_LOGGERS: kafka=ERROR,
         kafka.controller=ERROR,
@@ -24,6 +24,8 @@ services:
         kafka.log.LogCleaner=ERROR,
         state.change.logger=ERROR,
         kafka.authorizer.logger=ERROR
+    networks:
+      - cdtilab
 
   broker:
     image: confluentinc/cp-kafka:7.4.0
@@ -38,19 +40,11 @@ services:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: 'zookeeper1:2191'
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT,PLAINTEXT_EXTERNAL:PLAINTEXT
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker1:29092,PLAINTEXT_HOST://broker1:9092,PLAINTEXT_EXTERNAL://172.20.48.213:9192
-      # KAFKA_METRIC_REPORTERS: io.confluent.metrics.reporter.ConfluentMetricsReporter
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker:29092,PLAINTEXT_HOST://broker:9092,PLAINTEXT_EXTERNAL://172.20.48.213:9192
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
-      # KAFKA_CONFLUENT_LICENSE_TOPIC_REPLICATION_FACTOR: 1
-      # KAFKA_CONFLUENT_BALANCER_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-      # KAFKA_CONFLUENT_SCHEMA_REGISTRY_URL: http://schema-registry:8083
-      # CONFLUENT_METRICS_REPORTER_BOOTSTRAP_SERVERS: broker1:29092
-      # CONFLUENT_METRICS_REPORTER_TOPIC_REPLICAS: 1
-      # CONFLUENT_METRICS_ENABLE: 'true'
-      # CONFLUENT_SUPPORT_CUSTOMER_ID: 'anonymous'
       KAFKA_LOG4J_ROOT_LOGLEVEL: ERROR
       KAFKA_LOG4J_LOGGERS: kafka=ERROR,
         kafka.controller=ERROR,
@@ -60,3 +54,32 @@ services:
         kafka.log.LogCleaner=ERROR,
         state.change.logger=ERROR,
         kafka.authorizer.logger=ERROR  
+    networks:
+      - cdtilab
+
+  mosquitto:
+    image: eclipse-mosquitto:latest
+    container_name: mosquitto
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+    volumes:
+      - ./mqtt/config:/mosquitto/config
+      - ./mqtt/data:/mosquitto/data
+      - ./mqtt/log:/mosquitto/log
+    networks:
+      - cdtilab
+
+  telegraf:
+    image: telegraf
+    container_name: telegraf
+    volumes:
+      - ./telegraf/telegraf.conf:/etc/telegraf/telegraf.conf:ro
+    depends_on:
+      - mosquitto
+      - broker
+    networks:
+      - cdtilab
+
+networks:
+  cdtilab:
